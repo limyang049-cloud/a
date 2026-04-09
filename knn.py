@@ -1,14 +1,10 @@
-pip install streamlit pandas scikit-learn matplotlib seaborn
-
 import streamlit as st
 import pandas as pd
 import numpy as np
-
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -16,7 +12,9 @@ import seaborn as sns
 st.title("KNN Classification App (Supervised Machine Learning)")
 
 # Upload dataset
-df = pd.read_csv("dataset.csv")
+# Note: Ensure "dataset.csv" is in the same folder as this script!
+try:
+    df = pd.read_csv("dataset.csv")
 
     st.subheader("Dataset Preview")
     st.write(df.head())
@@ -63,23 +61,21 @@ df = pd.read_csv("dataset.csv")
     f1 = f1_score(y_test, y_pred, average='weighted')
 
     st.subheader("Model Evaluation")
-
-    st.write(f"Accuracy: {acc:.4f}")
-    st.write(f"Precision: {precision:.4f}")
-    st.write(f"Recall: {recall:.4f}")
-    st.write(f"F1 Score: {f1:.4f}")
+    col1, col2 = st.columns(2)
+    col1.metric("Accuracy", f"{acc:.4f}")
+    col1.metric("Precision", f"{precision:.4f}")
+    col2.metric("Recall", f"{recall:.4f}")
+    col2.metric("F1 Score", f"{f1:.4f}")
 
     # Confusion Matrix
     st.subheader("Confusion Matrix")
     cm = confusion_matrix(y_test, y_pred)
-
     fig, ax = plt.subplots()
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
     st.pyplot(fig)
 
     # Prediction section
     st.subheader("Make Prediction")
-
     input_data = []
     for col in df.drop(columns=[target_column]).columns:
         value = st.number_input(f"Enter {col}", value=0.0)
@@ -88,8 +84,8 @@ df = pd.read_csv("dataset.csv")
     if st.button("Predict"):
         input_array = np.array(input_data).reshape(1, -1)
         input_array = scaler.transform(input_array)
-
         prediction = model.predict(input_array)
         st.success(f"Predicted Class: {prediction[0]}")
 
-  streamlit run knn.py
+except FileNotFoundError:
+    st.error("Error: 'dataset.csv' not found. Please place the CSV file in the same folder as this script.")
