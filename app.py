@@ -179,7 +179,7 @@ elif page == "📊 Model Comparison":
                     "Recall": recall_score(y_test_comp, y_pred),
                     "F1 Score": f1_score(y_test_comp, y_pred)
                 })
-    
+
         # Create and display DataFrame
         results_df = pd.DataFrame(results).set_index("Model")
         
@@ -192,6 +192,27 @@ elif page == "📊 Model Comparison":
             .highlight_max(axis=0, color="darkgreen"),
             use_container_width=True
         )
+
+        # --- F1 Score Bar Chart ---
+        st.markdown("---")
+        st.subheader("📊 F1 Score Comparison (Primary Metric)")
+        fig, ax = plt.subplots(figsize=(8, 4))
+        
+        bars = ax.bar(results_df.index, results_df['F1 Score'], color=['#3498db', '#2ecc71', '#e74c3c'])
+        
+        ax.set_ylabel('F1 Score')
+        ax.set_ylim(0, 1.0)
+        
+        # Add value labels on top of the bars
+        for bar in bars:
+            height = bar.get_height()
+            ax.annotate(f'{height:.3f}',
+                        xy=(bar.get_x() + bar.get_width() / 2, height),
+                        xytext=(0, 3), 
+                        textcoords="offset points",
+                        ha='center', va='bottom')
+        
+        st.pyplot(fig)
 
         # --- NEW VISUALIZATION: Dot/Line Plot for All Metrics ---
         st.markdown("---")
@@ -215,27 +236,6 @@ elif page == "📊 Model Comparison":
         ax_line.grid(True, linestyle='--', alpha=0.6)
         
         st.pyplot(fig_line)
-
-        # --- F1 Score Bar Chart ---
-        st.markdown("---")
-        st.subheader("📊 F1 Score Comparison (Primary Metric)")
-        fig, ax = plt.subplots(figsize=(8, 4))
-        
-        bars = ax.bar(results_df.index, results_df['F1 Score'], color=['#3498db', '#2ecc71', '#e74c3c'])
-        
-        ax.set_ylabel('F1 Score')
-        ax.set_ylim(0, 1.0)
-        
-        # Add value labels on top of the bars
-        for bar in bars:
-            height = bar.get_height()
-            ax.annotate(f'{height:.3f}',
-                        xy=(bar.get_x() + bar.get_width() / 2, height),
-                        xytext=(0, 3), 
-                        textcoords="offset points",
-                        ha='center', va='bottom')
-        
-        st.pyplot(fig)
 
         # --- Confusion Matrices ---
         st.markdown("---")
