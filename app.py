@@ -179,7 +179,13 @@ elif page == "📊 Model Comparison":
                     "Recall": recall_score(y_test_comp, y_pred),
                     "F1 Score": f1_score(y_test_comp, y_pred)
                 })
-
+    # Plot a line with prominent dots for each model
+        for model in results_df.index:
+            ax_line.plot(metrics, results_df.loc[model, metrics], 
+                         marker='o',       # <--- THIS ADDS THE DOTS (lowercase letter 'o')
+                         markersize=10,    # <--- THIS MAKES THE DOTS BIGGER
+                         linewidth=2.5, 
+                         label=model, color=colors[model])
         # Create and display DataFrame
         results_df = pd.DataFrame(results).set_index("Model")
         
