@@ -137,14 +137,12 @@ elif page == "📊 Model Comparison":
     # --- Experiment Settings ---
     st.markdown("### ⚙️ Model Evaluation Settings")
     
-    # 1. Plain English slider with a helpful tooltip
     test_size = st.slider(
         "Data reserved for testing (%)", 
         min_value=10, max_value=50, value=20,
         help="To evaluate our AI, we hide a portion of the patient data during training and use it later as a 'test'. 20% is the industry standard."
     )
     
-    # 2. Hide the confusing Random State in an advanced dropdown menu
     with st.expander("🛠️ Advanced Engineering Settings"):
         st.write("These settings are for technical debugging and reproducibility.")
         random_state = st.number_input(
@@ -195,14 +193,37 @@ elif page == "📊 Model Comparison":
             use_container_width=True
         )
 
-        # --- Visualizations ---
-        st.subheader("📊 F1 Score Comparison")
+        # --- NEW VISUALIZATION: Dot/Line Plot for All Metrics ---
+        st.markdown("---")
+        st.subheader("🎯 Comprehensive Metric Comparison (Dot Plot)")
+        st.write("This graph plots every metric simultaneously so you can spot which model is the most well-rounded.")
+        
+        fig_line, ax_line = plt.subplots(figsize=(10, 5))
+        
+        colors = {'KNN': '#3498db', 'SVM': '#2ecc71', 'ANN': '#e74c3c'}
+        metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+        
+        # Plot a line with prominent dots for each model
+        for model in results_df.index:
+            ax_line.plot(metrics, results_df.loc[model, metrics], 
+                         marker='o', markersize=10, linewidth=2.5, 
+                         label=model, color=colors[model])
+            
+        ax_line.set_ylabel('Score')
+        ax_line.set_ylim(0, 1.1)  # Set limit slightly above 1 to fit the layout
+        ax_line.legend(loc='lower right')
+        ax_line.grid(True, linestyle='--', alpha=0.6)
+        
+        st.pyplot(fig_line)
+
+        # --- F1 Score Bar Chart ---
+        st.markdown("---")
+        st.subheader("📊 F1 Score Comparison (Primary Metric)")
         fig, ax = plt.subplots(figsize=(8, 4))
         
         bars = ax.bar(results_df.index, results_df['F1 Score'], color=['#3498db', '#2ecc71', '#e74c3c'])
         
         ax.set_ylabel('F1 Score')
-        ax.set_title('Model Comparison by F1 Score')
         ax.set_ylim(0, 1.0)
         
         # Add value labels on top of the bars
