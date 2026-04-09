@@ -134,17 +134,23 @@ elif page == "📊 Model Comparison":
     st.write("Compare the performance of KNN, SVM, and ANN by adjusting the test parameters below.")
 
     # --- Experiment Settings ---
-    st.markdown("### ⚙️ Experiment Settings")
-    col_settings_1, col_settings_2 = st.columns(2)
-    with col_settings_1:
-        test_size = st.slider("Test Size (%)", 10, 50, 20)
-    with col_settings_2:
-        random_state = st.number_input("Random State", 0, 100, 42)
-
-    if st.button("🚀 Run Comparison", type="primary"):
-        # Re-split data based on user slider settings
-        X_train_comp, X_test_comp, y_train_comp, y_test_comp = train_test_split(
-            X_scaled, y, test_size=test_size/100.0, random_state=random_state
+    # --- Experiment Settings ---
+    st.markdown("### ⚙️ Model Evaluation Settings")
+    
+    # 1. Plain English slider with a helpful tooltip
+    test_size = st.slider(
+        "Data reserved for testing (%)", 
+        min_value=10, max_value=50, value=20,
+        help="To evaluate our AI, we hide a portion of the patient data during training and use it later as a 'test'. 20% is the industry standard."
+    )
+    
+    # 2. Hide the confusing Random State in an advanced dropdown menu
+    with st.expander("🛠️ Advanced Engineering Settings"):
+        st.write("These settings are for technical debugging and reproducibility.")
+        random_state = st.number_input(
+            "Random Seed", 
+            min_value=0, max_value=100, value=42,
+            help="Locks the mathematical randomness. Keeping this the same means you will get the exact same results every time you hit run."
         )
 
         # Define fresh models for the comparison
