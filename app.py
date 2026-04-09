@@ -1,20 +1,27 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import warnings
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+# Ignore warnings for cleaner output
+warnings.filterwarnings('ignore')
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Diabetes Prediction System", page_icon="🩺", layout="wide")
 
-# --- Data Loading & Preprocessing (Cached for performance) ---
+# --- Data Loading & Preprocessing ---
 @st.cache_data
 def load_and_prep_data():
     columns = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 
                'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age', 'Outcome']
+    # Skip the header text lines as per your original code
     df = pd.read_csv("dataset.csv", names=columns, skiprows=38)
     
     X = df.drop(columns=['Outcome'])
@@ -24,13 +31,17 @@ def load_and_prep_data():
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     
-    return X_scaled, y, scaler, df
+    return X_scaled, y, scaler, df, X.columns
 
-X_scaled, y, scaler, df = load_and_prep_data()
+try:
+    X_scaled, y, scaler, df, feature_names = load_and_prep_data()
+except FileNotFoundError:
+    st.error("❌ 'dataset.csv' not found. Please ensure it is in the same directory as this script.")
+    st.stop()
 
-# --- Train Models (Cached so they only train once) ---
+# --- Pre-Train Models for Prediction Page ---
 @st.cache_resource
-def train_models(X, y):
+def train_base_models(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
     models = {
@@ -40,65 +51,45 @@ def train_models(X, y):
     }
     return models
 
-models = train_models(X_scaled, y)
+models = train_base_models(X_scaled, y)
 
 # --- Sidebar Navigation ---
 st.sidebar.title("Navigation 🧭")
 page = st.sidebar.radio("Select a Page:", 
                         ["🏠 Home & Analytics", "🧪 Make a Prediction", "📊 Model Comparison"])
 
-# --- Page Routing ---
+# ==========================================
+# PAGE 1: HOME
+# ==========================================
 if page == "🏠 Home & Analytics":
-    st.title("Diabetes Prediction System")
+    st.title("🩺 Diabetes Prediction System")
     st.write("Welcome to the Diabetes Prediction Portal. Use the sidebar to navigate to the prediction engine or view our algorithm performance metrics.")
-    st.subheader("Dataset Overview")
-    st.dataframe(df.head())
-
-elif page == "🧪 Make a Prediction":
-    st.title("Patient Prediction Interface")
-    st.write("Enter the patient's medical details below to predict the risk of diabetes.")
     
-    # Create a nice form layout
+    st.markdown("---")
+    st.subheader("📊 Dataset Overview")
+    st.dataframe(df.head(10), use_container_width=True)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("**Dataset Shape:**", df.shape)
+        st.write("**Diabetic Cases (Outcome=1):**", df['Outcome'].sum())
+    with col2:
+        st.write("**Non-Diabetic Cases (Outcome=0):**", len(df) - df['Outcome'].sum())
+        st.write("**Total Features:**", len(feature_names))
+
+# ==========================================
+# PAGE 2: MAKE A PREDICTION
+# ==========================================
+elif page == "🧪 Make a Prediction":
+    st.title("🧪 Patient Prediction Interface")
+    st.write("Enter the patient's medical details below to predict the risk of diabetes using our trained models.")
+    
+    st.markdown("---")
+    
+    # Input Form
     col1, col2 = st.columns(2)
     
     with col1:
-        pregnancies = st.number_input("Pregnancies", min_value=0, max_value=20, value=0)
-        glucose = st.number_input("Glucose Level", min_value=0.0, value=120.0)
-        bp = st.number_input("Blood Pressure", min_value=0.0, value=70.0)
-        skin = st.number_input("Skin Thickness", min_value=0.0, value=20.0)
-        
-    with col2:
-        insulin = st.number_input("Insulin Level", min_value=0.0, value=79.0)
-        bmi = st.number_input("BMI", min_value=0.0, value=25.0)
-        dpf = st.number_input("Diabetes Pedigree Function", min_value=0.000, value=0.500, format="%.3f")
-        age = st.number_input("Age", min_value=1, max_value=120, value=30)
-        
-    selected_model = st.selectbox("Select Prediction Algorithm", ["Ensemble (All 3)", "KNN", "SVM", "ANN"])
-    
-    if st.button("Generate Prediction", type="primary"):
-        # Format input for the model
-        user_input = np.array([[pregnancies, glucose, bp, skin, insulin, bmi, dpf, age]])
-        user_input_scaled = scaler.transform(user_input)
-        
-        st.markdown("---")
-        st.subheader("Results")
-        
-        if selected_model == "Ensemble (All 3)":
-            # Show results from all models side-by-side
-            res_cols = st.columns(3)
-            for i, (name, model) in enumerate(models.items()):
-                pred = model.predict(user_input_scaled)[0]
-                status = "High Risk ⚠️" if pred == 1 else "Low Risk ✅"
-                res_cols[i].metric(label=f"{name} Prediction", value=status)
-        else:
-            # Show single model result
-            pred = models[selected_model].predict(user_input_scaled)[0]
-            if pred == 1:
-                st.error(f"**Result:** The {selected_model} model indicates a **High Risk** of diabetes.")
-            else:
-                st.success(f"**Result:** The {selected_model} model indicates a **Low Risk** of diabetes.")
-
-elif page == "📊 Model Comparison":
-    st.title("Algorithm Performance")
-    st.write("This section contains the logic from your `model_comparison.py` file.")
-    # You can copy and paste the visualization logic from your model_comparison.py here
+        pregnancies = st.number_input("Pregnancies", min_value=0, max_value=20, value=int(df['Pregnancies'].median()))
+        glucose = st.number_input("Glucose Level", min_value=0.0, value=float(df['Glucose'].median()))
+        bp = st
