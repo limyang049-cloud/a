@@ -15,25 +15,26 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 warnings.filterwarnings('ignore')
 
 # --- Page Configuration ---
-# Setting a wide layout and a custom theme color (handled slightly by Streamlit config, but we can structure it well)
+# Setting a wide layout and a custom theme color
 st.set_page_config(page_title="Diabetes Prediction System", page_icon="🩸", layout="wide", initial_sidebar_state="expanded")
 
 # --- Custom CSS for UI Polish ---
 st.markdown("""
     <style>
-    .main {
-        background-color: #f8f9fa;
-    }
+    /* Ensure buttons look uniform */
     .stButton>button {
         width: 100%;
         border-radius: 5px;
         font-weight: bold;
     }
-    .stMetric {
-        background-color: white;
+    
+    /* Target the metric containers properly and remove hardcoded white backgrounds */
+    div[data-testid="metric-container"] {
         padding: 15px;
         border-radius: 8px;
+        border: 1px solid rgba(128, 128, 128, 0.2);
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        background-color: transparent; /* Adapts to your theme (Light/Dark mode) */
     }
     </style>
 """, unsafe_allow_html=True)
