@@ -168,23 +168,6 @@ def local_css():
     .social-instagram { background-color: #cb2027; color: white; }
     .social-github { background-color: #4183c4; color: white; }
     
-    /* Success/Error messages */
-    .success-message {
-        background-color: #d4edda;
-        color: #155724;
-        padding: 15px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-    
-    .error-message {
-        background-color: #f8d7da;
-        color: #721c24;
-        padding: 15px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-    
     .text-primary-custom {
         color: #0cb8b6;
     }
@@ -237,19 +220,11 @@ def load_and_prep_data():
     columns = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 
                'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age', 'Outcome']
     
-    # Try to load from uploaded file first, then default
-    if 'uploaded_data' in st.session_state and st.session_state.uploaded_data is not None:
-        df = st.session_state.uploaded_data
-        # Ensure columns match
-        if list(df.columns) != columns:
-            st.warning("Uploaded file has different columns. Using default dataset.")
-            df = pd.read_csv("dataset.csv", names=columns, skiprows=38)
-    else:
-        try:
-            df = pd.read_csv("dataset.csv", names=columns, skiprows=38)
-        except FileNotFoundError:
-            st.error("❌ 'dataset.csv' not found. Please upload a dataset using the file uploader.")
-            return None, None, None, None, None
+    try:
+        df = pd.read_csv("dataset.csv", names=columns, skiprows=38)
+    except FileNotFoundError:
+        st.error("❌ 'dataset.csv' not found. Please ensure the dataset is in the correct directory.")
+        return None, None, None, None, None
     
     X = df.drop(columns=['Outcome'])
     y = df['Outcome']
@@ -262,10 +237,6 @@ def load_and_prep_data():
 # Initialize session state
 if 'page' not in st.session_state:
     st.session_state.page = "home"
-if 'models_trained' not in st.session_state:
-    st.session_state.models_trained = False
-if 'uploaded_data' not in st.session_state:
-    st.session_state.uploaded_data = None
 
 # ==========================================
 # TRAIN MODELS
@@ -357,9 +328,12 @@ def cta_section():
             <div style="flex: 1; padding: 20px; background-color: #0a9a98;">
                 <h3>Opening Hours</h3>
                 <table style="width:100%; color:white;">
-                    <tr><td>Monday - Friday</td><td>8:00 - 17:00</td></tr>
-                    <tr><td>Saturday</td><td>9:30 - 17:30</td></tr>
-                    <tr><td>Sunday</td><td>9:30 - 15:00</td></tr>
+                    <tr><td>Monday - Friday</td><td>8:00 - 17:00</td>
+                    <tr>
+                    <tr><td>Saturday</td><td>9:30 - 17:30</td>
+                    </tr>
+                    <tr><td>Sunday</td><td>9:30 - 15:00</td>
+                    </tr>
                 </table>
             </div>
         </div>
@@ -429,51 +403,22 @@ def system_checker_page():
     st.title("🩺 Diabetes Risk Prediction System")
     st.markdown("Enter patient diagnostic measurements below. The system will evaluate using multiple AI models.")
     
-    # File uploader for custom dataset
-    st.markdown("---")
-    st.subheader("📁 Dataset Management")
-    
-    uploaded_file = st.file_uploader("Upload your own dataset (CSV format)", type=['csv'])
-    
-    if uploaded_file is not None:
-        try:
-            columns = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 
-                       'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age', 'Outcome']
-            df_uploaded = pd.read_csv(uploaded_file)
-            
-            # Check if columns match expected format
-            if len(df_uploaded.columns) == 9:
-                df_uploaded.columns = columns
-                st.session_state.uploaded_data = df_uploaded
-                st.success(f"✅ Dataset loaded successfully! {df_uploaded.shape[0]} rows, {df_uploaded.shape[1]} columns")
-                with st.expander("Preview uploaded data"):
-                    st.dataframe(df_uploaded.head(10))
-            else:
-                st.error("Uploaded file must have 9 columns matching the diabetes dataset format.")
-        except Exception as e:
-            st.error(f"Error loading file: {e}")
-    else:
-        if st.button("📊 Use Default Dataset"):
-            st.session_state.uploaded_data = None
-            st.rerun()
-    
     # Load data
     X_scaled, y, scaler, df, feature_names = load_and_prep_data()
     
     if X_scaled is None:
-        st.warning("⚠️ Please upload a dataset or ensure 'dataset.csv' is available.")
         st.markdown('</div>', unsafe_allow_html=True)
         return
     
     # Train models
     with st.spinner("Training AI models..."):
         models = train_base_models(X_scaled, y)
-        st.session_state.models_trained = True
     
     st.markdown("---")
     st.subheader("📊 Dataset Overview")
     
-    col1, col2, col3, col4 = st.columns(4)
+    # Dataset statistics
+    col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         st.metric("Total Records", df.shape[0])
     with col2:
@@ -482,6 +427,12 @@ def system_checker_page():
         st.metric("Healthy Cases", len(df) - df['Outcome'].sum())
     with col4:
         st.metric("Features", len(feature_names))
+    with col5:
+        st.metric("Diabetes Rate", f"{(df['Outcome'].sum()/len(df))*100:.1f}%")
+    
+    # Feature statistics expander
+    with st.expander("📈 Feature Statistics Summary"):
+        st.dataframe(df.describe(), use_container_width=True)
     
     # Prediction Form
     st.markdown("---")
@@ -569,41 +520,189 @@ def system_checker_page():
     # Model Comparison Section
     st.markdown("---")
     st.subheader("📊 Model Performance Comparison")
+    st.markdown("Comprehensive evaluation of all three algorithms with detailed metrics and visualizations.")
     
-    if st.button("🔄 Run Model Comparison"):
-        X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
-        
-        comp_models = {
-            "KNN": KNeighborsClassifier(n_neighbors=5),
-            "SVM": SVC(kernel='rbf', random_state=42),
-            "ANN": MLPClassifier(hidden_layer_sizes=(100,), max_iter=500, random_state=42)
-        }
-        
-        results = []
-        for name, model in comp_models.items():
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
-            results.append({
-                "Model": name,
-                "Accuracy": accuracy_score(y_test, y_pred),
-                "Precision": precision_score(y_test, y_pred, zero_division=0),
-                "Recall": recall_score(y_test, y_pred, zero_division=0),
-                "F1 Score": f1_score(y_test, y_pred, zero_division=0)
-            })
-        
-        results_df = pd.DataFrame(results).set_index("Model")
-        st.dataframe(results_df.style.format("{:.2%}").highlight_max(axis=0, color="#d4edda"), use_container_width=True)
-        
-        # Bar chart
-        fig, ax = plt.subplots(figsize=(10, 5))
-        results_df.plot(kind='bar', ax=ax, color=['#3498db', '#2ecc71', '#e74c3c', '#f39c12'])
-        ax.set_ylim(0, 1)
-        ax.set_ylabel("Score")
-        ax.set_title("Model Performance Comparison")
-        ax.legend(loc='lower right')
-        ax.grid(axis='y', alpha=0.3)
-        st.pyplot(fig)
-        plt.close()
+    if st.button("🔄 Run Model Comparison", type="secondary"):
+        with st.spinner("Training and evaluating models..."):
+            X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+            
+            comp_models = {
+                "KNN": KNeighborsClassifier(n_neighbors=5),
+                "SVM": SVC(kernel='rbf', random_state=42),
+                "ANN": MLPClassifier(hidden_layer_sizes=(100,), max_iter=500, random_state=42)
+            }
+            
+            results = []
+            trained_models = {}
+            confusion_matrices = {}
+            
+            for name, model in comp_models.items():
+                model.fit(X_train, y_train)
+                trained_models[name] = model
+                y_pred = model.predict(X_test)
+                confusion_matrices[name] = confusion_matrix(y_test, y_pred)
+                
+                results.append({
+                    "Model": name,
+                    "Accuracy": accuracy_score(y_test, y_pred),
+                    "Precision": precision_score(y_test, y_pred, zero_division=0),
+                    "Recall": recall_score(y_test, y_pred, zero_division=0),
+                    "F1 Score": f1_score(y_test, y_pred, zero_division=0)
+                })
+            
+            results_df = pd.DataFrame(results).set_index("Model")
+            
+            # Display metrics table
+            st.markdown("#### 📋 Performance Metrics Table")
+            st.dataframe(results_df.style.format("{:.2%}").highlight_max(axis=0, color="#d4edda"), use_container_width=True)
+            
+            # Comprehensive Metric Comparison - Dot Plot
+            st.markdown("#### 📈 Comprehensive Metric Comparison (Dot Plot)")
+            
+            fig_dot, ax_dot = plt.subplots(figsize=(12, 6))
+            
+            metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+            colors = {'KNN': '#3498db', 'SVM': '#2ecc71', 'ANN': '#e74c3c'}
+            markers = {'KNN': 'o', 'SVM': 's', 'ANN': '^'}
+            
+            y_pos = np.arange(len(metrics))
+            
+            for i, model in enumerate(results_df.index):
+                values = [results_df.loc[model, 'Accuracy'], 
+                         results_df.loc[model, 'Precision'],
+                         results_df.loc[model, 'Recall'], 
+                         results_df.loc[model, 'F1 Score']]
+                
+                # Add small horizontal offset for each model
+                offset = (i - 1) * 0.2
+                ax_dot.scatter(values, y_pos + offset, s=150, c=colors[model], 
+                              marker=markers[model], label=model, alpha=0.8, zorder=3)
+                
+                # Add value labels
+                for j, val in enumerate(values):
+                    ax_dot.annotate(f'{val:.2f}', (val + 0.02, y_pos[j] + offset), 
+                                   fontsize=8, ha='left', va='center')
+            
+            ax_dot.set_yticks(y_pos)
+            ax_dot.set_yticklabels(metrics)
+            ax_dot.set_xlabel('Score')
+            ax_dot.set_title('Model Performance Comparison - Dot Plot', fontsize=14, fontweight='bold')
+            ax_dot.set_xlim(0, 1.05)
+            ax_dot.axvline(x=0.7, color='gray', linestyle='--', alpha=0.5, label='Good Threshold')
+            ax_dot.legend(loc='lower right')
+            ax_dot.grid(axis='x', alpha=0.3)
+            
+            st.pyplot(fig_dot)
+            plt.close()
+            
+            # Confusion Matrices for Individual Algorithms
+            st.markdown("#### 🔍 Confusion Matrices (Individual Algorithm Performance)")
+            
+            cm_cols = st.columns(3)
+            cm_figs = []
+            
+            for idx, (name, cm) in enumerate(confusion_matrices.items()):
+                fig_cm, ax_cm = plt.subplots(figsize=(5, 4))
+                
+                # Custom heatmap with better styling
+                sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                           xticklabels=['No Diabetes', 'Diabetes'],
+                           yticklabels=['No Diabetes', 'Diabetes'],
+                           ax=ax_cm, cbar=False, annot_kws={'size': 14, 'weight': 'bold'})
+                
+                ax_cm.set_title(f'{name} - Confusion Matrix', fontsize=12, fontweight='bold')
+                ax_cm.set_xlabel('Predicted', fontsize=10)
+                ax_cm.set_ylabel('Actual', fontsize=10)
+                
+                # Add accuracy annotation
+                acc = results_df.loc[name, 'Accuracy']
+                ax_cm.text(0.5, -0.15, f'Accuracy: {acc:.2%}', transform=ax_cm.transAxes,
+                          ha='center', va='center', fontsize=10, fontweight='bold',
+                          bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+                
+                with cm_cols[idx]:
+                    st.pyplot(fig_cm)
+                plt.close()
+            
+            # Performance comparison bar chart
+            st.markdown("#### 📊 Performance Bar Chart")
+            fig_bar, ax_bar = plt.subplots(figsize=(10, 5))
+            results_df.plot(kind='bar', ax=ax_bar, color=['#3498db', '#2ecc71', '#e74c3c', '#f39c12'])
+            ax_bar.set_ylim(0, 1)
+            ax_bar.set_ylabel("Score")
+            ax_bar.set_title("Model Performance Comparison - Bar Chart", fontsize=14, fontweight='bold')
+            ax_bar.legend(loc='lower right')
+            ax_bar.grid(axis='y', alpha=0.3)
+            ax_bar.set_xticklabels(ax_bar.get_xticklabels(), rotation=0)
+            
+            # Add value labels on bars
+            for container in ax_bar.containers:
+                ax_bar.bar_label(container, fmt='%.2f', fontsize=9, padding=2)
+            
+            st.pyplot(fig_bar)
+            plt.close()
+            
+            # Summary statistics
+            st.markdown("#### 📝 Summary Analysis")
+            
+            best_accuracy = results_df['Accuracy'].idxmax()
+            best_f1 = results_df['F1 Score'].idxmax()
+            best_precision = results_df['Precision'].idxmax()
+            best_recall = results_df['Recall'].idxmax()
+            
+            col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+            with col_s1:
+                st.info(f"🏆 **Best Accuracy**: {best_accuracy} ({results_df.loc[best_accuracy, 'Accuracy']:.2%})")
+            with col_s2:
+                st.info(f"🎯 **Best F1 Score**: {best_f1} ({results_df.loc[best_f1, 'F1 Score']:.2%})")
+            with col_s3:
+                st.success(f"📊 **Best Precision**: {best_precision} ({results_df.loc[best_precision, 'Precision']:.2%})")
+            with col_s4:
+                st.warning(f"🔄 **Best Recall**: {best_recall} ({results_df.loc[best_recall, 'Recall']:.2%})")
+            
+            # Algorithm characteristics table
+            st.markdown("#### 🧬 Algorithm Characteristics")
+            char_data = {
+                "Algorithm": ["KNN", "SVM", "ANN"],
+                "Strengths": [
+                    "Simple, no training time, interpretable, good for small datasets",
+                    "Effective in high dimensions, memory efficient, robust to overfitting",
+                    "Captures complex patterns, highly flexible, learns non-linear relationships"
+                ],
+                "Weaknesses": [
+                    "Slow prediction, sensitive to irrelevant features, needs feature scaling",
+                    "Parameter tuning required, slower training on large datasets",
+                    "Black-box nature, requires more data, computationally intensive"
+                ],
+                "Best For": [
+                    "Small to medium datasets with clear clusters",
+                    "High-dimensional data, binary classification",
+                    "Complex patterns, large datasets, deep feature learning"
+                ]
+            }
+            char_df = pd.DataFrame(char_data)
+            st.dataframe(char_df, use_container_width=True, hide_index=True)
+            
+            # Recommendation
+            st.markdown("---")
+            st.markdown("#### 💡 Recommendation")
+            
+            if best_f1 == best_accuracy:
+                recommended = best_accuracy
+            else:
+                # Choose based on F1 score (balance of precision and recall)
+                recommended = best_f1
+            
+            st.success(f"""
+            **{recommended}** is recommended for this diabetes prediction task based on:
+            - Accuracy: {results_df.loc[recommended, 'Accuracy']:.2%}
+            - Precision: {results_df.loc[recommended, 'Precision']:.2%}
+            - Recall: {results_df.loc[recommended, 'Recall']:.2%}
+            - F1 Score: {results_df.loc[recommended, 'F1 Score']:.2%}
+            
+            This algorithm provides the best balance between false positives and false negatives,
+            which is crucial for medical diagnosis where both types of errors have significant consequences.
+            """)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -621,7 +720,7 @@ def doctor_directory_page():
         "Available Days": ["Mon-Sat 9AM-5PM", "Mon-Wed-Fri 10AM-2PM", "Tue-Thu 11AM-3PM", 
                           "Mon-Fri 9AM-4PM", "Mon-Sat 10AM-6PM", "Mon-Fri 9AM-1PM", 
                           "Mon-Thu 10AM-4PM", "Mon-Sat 11AM-3PM"],
-        "Fee (₹)": ["400", "800", "750", "500", "600", "450", "650", "550"]
+        "Fee (RM)": ["1200", "800", "750", "500", "600", "450", "650", "550"]
     }
     
     df_doctors = pd.DataFrame(doctors_data)
@@ -630,7 +729,7 @@ def doctor_directory_page():
     st.markdown("""
     <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-top: 30px;">
         <h4 style="color: #0cb8b6;"><i class="fas fa-calendar-alt"></i> Book an Appointment</h4>
-        <p>Call our helpline: <strong>+1 600 123 1234</strong> or email: <strong>appointments@doctello.com</strong></p>
+        <p>Call our helpline: <strong>+60 11 4455 1234</strong> or email: <strong>appointments@doctello.com</strong></p>
         <p>Emergency services available 24/7. All major insurance plans accepted.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -718,9 +817,9 @@ def main():
         
         st.markdown("---")
         st.markdown("### Contact Info")
-        st.markdown("📞 +1 600 123 1234")
+        st.markdown("📞 +60 11 4455 1234")
         st.markdown("✉️ info@doctello.com")
-        st.markdown("📍 Dehradun, India")
+        st.markdown("📍 Maylaysia, Subang Jaya")
     
     # Page Routing
     page = st.session_state.page
