@@ -15,30 +15,23 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 warnings.filterwarnings('ignore')
 
 # --- Page Configuration ---
-st.set_page_config(page_title="Diabetes Prediction System", page_icon="🩸", layout="wide", initial_sidebar_state="expanded")
-
-# --- Custom CSS for UI Polish ---
-st.markdown("""
-    <style>
-    .stButton>button { width: 100%; border-radius: 5px; font-weight: bold; }
-    div[data-testid="metric-container"] {
-        padding: 15px; border-radius: 8px; border: 1px solid rgba(128, 128, 128, 0.2);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05); background-color: transparent;
-    }
-    </style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="Diabetes Prediction System", page_icon="🩺", layout="wide")
 
 # --- Data Loading & Preprocessing ---
 @st.cache_data
 def load_and_prep_data():
     columns = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 
                'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age', 'Outcome']
-    # Retained the skiprows=38 from your original assignment file
+    # Skip the header text lines as per your original code
     df = pd.read_csv("dataset.csv", names=columns, skiprows=38)
+    
     X = df.drop(columns=['Outcome'])
     y = df['Outcome']
+    
+    # Scale data
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
+    
     return X_scaled, y, scaler, df, X.columns
 
 try:
@@ -47,10 +40,11 @@ except FileNotFoundError:
     st.error("❌ 'dataset.csv' not found. Please ensure it is in the same directory as this script.")
     st.stop()
 
-# --- Pre-Train Models ---
+# --- Pre-Train Models for Prediction Page ---
 @st.cache_resource
 def train_base_models(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
     models = {
         "KNN": KNeighborsClassifier(n_neighbors=5).fit(X_train, y_train),
         "SVM": SVC(kernel='rbf', probability=True, random_state=42).fit(X_train, y_train),
@@ -61,131 +55,240 @@ def train_base_models(X, y):
 models = train_base_models(X_scaled, y)
 
 # --- Sidebar Navigation ---
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2966/2966327.png", width=100)
-    st.title("Main Menu")
-    page = st.radio("Navigate through the application:", ["🏠 Home & Analytics", "🧪 Patient Prediction", "📊 Model Comparison"])
-    st.markdown("---")
-    st.caption("Developed for Machine Learning Coursework")
+st.sidebar.title("Navigation 🧭")
+page = st.sidebar.radio("Select a Page:", 
+                        ["🏠 Home & Analytics", "🧪 Make a Prediction", "📊 Model Comparison"])
 
 # ==========================================
-# PAGE 1: HOME & ANALYTICS
+# PAGE 1: HOME
 # ==========================================
 if page == "🏠 Home & Analytics":
-    st.title("🩺 Diabetes Risk Prediction Dashboard")
-    st.markdown("Welcome to the **Intelligent Clinical Decision Support System**[cite: 5].")
+    st.title("🩺 Diabetes Prediction System")
+    st.write("Welcome to the Diabetes Prediction Portal. Use the sidebar to navigate to the prediction engine or view our algorithm performance metrics.")
     
-    col1, col2, col3, col4 = st.columns(4)
-    with col1: st.metric("Total Records", df.shape[0])
-    with col2: st.metric("Diabetic Cases ⚠️", df['Outcome'].sum())
-    with col3: st.metric("Healthy Cases ✅", len(df) - df['Outcome'].sum())
-    with col4: st.metric("Clinical Features", len(feature_names))
-
-    st.markdown("### 📈 Dataset Preview")
-    st.dataframe(df.head(10).style.highlight_max(axis=0, color="#ffcccc"), use_container_width=True)
+    st.markdown("---")
+    st.subheader("📊 Dataset Overview")
+    st.dataframe(df.head(10), use_container_width=True)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("**Dataset Shape:**", df.shape)
+        st.write("**Diabetic Cases (Outcome=1):**", df['Outcome'].sum())
+    with col2:
+        st.write("**Non-Diabetic Cases (Outcome=0):**", len(df) - df['Outcome'].sum())
+        st.write("**Total Features:**", len(feature_names))
 
 # ==========================================
 # PAGE 2: MAKE A PREDICTION
 # ==========================================
-elif page == "🧪 Patient Prediction":
+elif page == "🧪 Make a Prediction":
     st.title("🧪 Patient Prediction Interface")
-    with st.container():
-        st.markdown("#### 🧑‍⚕️ Clinical Measurements")
-        c1, c2, c3 = st.columns(3)
-        age = c1.number_input("Age", 1, 120, int(df['Age'].median()))
-        bmi = c2.number_input("BMI", 0.0, 70.0, float(df['BMI'].median()))
-        bp = c3.number_input("Blood Pressure", 0.0, 200.0, float(df['BloodPressure'].median()))
-        
-        c4, c5, c6 = st.columns(3)
-        glucose = c4.number_input("Glucose", 0.0, 300.0, float(df['Glucose'].median()))
-        insulin = c5.number_input("Insulin", 0.0, 900.0, float(df['Insulin'].median()))
-        skin = c6.number_input("Skin Thickness", 0.0, 100.0, float(df['SkinThickness'].median()))
-        
-        c7, c8 = st.columns(2)
-        pregnancies = c7.number_input("Pregnancies", 0, 20, int(df['Pregnancies'].median()))
-        dpf = c8.number_input("Pedigree Function", 0.0, 3.0, float(df['DiabetesPedigreeFunction'].median()), format="%.3f")
-
-    selected_model = st.selectbox("Select Prediction Engine:", ["Ensemble (All 3 Models)", "KNN", "SVM", "ANN"])
+    st.write("Enter the patient's medical details below to predict the risk of diabetes using our trained models.")
     
-    if st.button("🧬 Analyze Patient Data", type="primary"):
-        user_input_scaled = scaler.transform(np.array([[pregnancies, glucose, bp, skin, insulin, bmi, dpf, age]]))
+    st.markdown("---")
+    
+    # Input Form
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        pregnancies = st.number_input("Pregnancies", min_value=0, max_value=20, value=int(df['Pregnancies'].median()))
+        glucose = st.number_input("Glucose Level", min_value=0.0, value=float(df['Glucose'].median()))
+        bp = st.number_input("Blood Pressure", min_value=0.0, value=float(df['BloodPressure'].median()))
+        skin = st.number_input("Skin Thickness", min_value=0.0, value=float(df['SkinThickness'].median()))
+        
+    with col2:
+        insulin = st.number_input("Insulin Level", min_value=0.0, value=float(df['Insulin'].median()))
+        bmi = st.number_input("BMI", min_value=0.0, value=float(df['BMI'].median()))
+        dpf = st.number_input("Diabetes Pedigree Function", min_value=0.000, value=float(df['DiabetesPedigreeFunction'].median()), format="%.3f")
+        age = st.number_input("Age", min_value=1, max_value=120, value=int(df['Age'].median()))
+        
+    st.markdown("---")
+    selected_model = st.selectbox("Select Prediction Algorithm", ["Ensemble (All 3 Models)", "KNN", "SVM", "ANN"])
+    
+    if st.button("Generate Prediction", type="primary"):
+        # Format input for the model
+        user_input = np.array([[pregnancies, glucose, bp, skin, insulin, bmi, dpf, age]])
+        user_input_scaled = scaler.transform(user_input)
+        
+        st.subheader("Prediction Results")
         
         if selected_model == "Ensemble (All 3 Models)":
             res_cols = st.columns(3)
             for i, (name, model) in enumerate(models.items()):
                 pred = model.predict(user_input_scaled)[0]
-                if pred == 1: res_cols[i].error(f"### {name}\nHigh Risk ⚠️")
-                else: res_cols[i].success(f"### {name}\nLow Risk ✅")
+                if pred == 1:
+                    res_cols[i].error(f"**{name} Model**\n\nHigh Risk ⚠️")
+                else:
+                    res_cols[i].success(f"**{name} Model**\n\nLow Risk ✅")
         else:
             pred = models[selected_model].predict(user_input_scaled)[0]
-            if pred == 1: st.error(f"The **{selected_model}** model indicates a **High Risk ⚠️**")
-            else: st.success(f"The **{selected_model}** model indicates a **Low Risk ✅**")
+            if pred == 1:
+                st.error(f"The **{selected_model}** model indicates a **High Risk ⚠️** of diabetes.")
+            else:
+                st.success(f"The **{selected_model}** model indicates a **Low Risk ✅** of diabetes.")
 
 # ==========================================
-# PAGE 3: MODEL COMPARISON (Merged logic)
+# PAGE 3: MODEL COMPARISON
 # ==========================================
 elif page == "📊 Model Comparison":
     st.title("📊 Algorithm Performance Comparison")
-    col_settings, col_results = st.columns([1, 2.5])
+    st.write("Compare the performance of KNN, SVM, and ANN by adjusting the test parameters below.")
 
-    with col_settings:
-        st.markdown("### ⚙️ Simulation Controls")
-        test_size = st.slider("Test Data Allocation (%)", 10, 50, 20, help="20% is the industry standard[cite: 13].")
-        random_state = st.number_input("Random Seed", 0, 100, 42, help="Locks randomness for consistent results[cite: 14].")
-        run_sim = st.button("🚀 Run Simulation", type="primary")
+    # --- Experiment Settings ---
+    st.markdown("### ⚙️ Model Evaluation Settings")
+    
+    test_size = st.slider(
+        "Data reserved for testing (%)", 
+        min_value=10, max_value=50, value=20,
+        help="To evaluate our AI, we hide a portion of the patient data during training and use it later as a 'test'. 20% is the industry standard."
+    )
+    
+    with st.expander("🛠️ Advanced Engineering Settings"):
+        st.write("These settings are for technical debugging and reproducibility.")
+        random_state = st.number_input(
+            "Random Seed", 
+            min_value=0, max_value=100, value=42,
+            help="Locks the mathematical randomness. Keeping this the same means you will get the exact same results every time you hit run."
+        )
 
-    with col_results:
-        if run_sim or 'results_df' not in st.session_state:
-            X_train_comp, X_test_comp, y_train_comp, y_test_comp = train_test_split(
-                X_scaled, y, test_size=test_size/100.0, random_state=random_state
-            )
-            comp_models = {
-                "KNN": KNeighborsClassifier(n_neighbors=5),
-                "SVM": SVC(kernel='rbf', probability=True, random_state=random_state),
-                "ANN": MLPClassifier(hidden_layer_sizes=(100,), max_iter=500, random_state=random_state)
-            }
-            results = []
+    if st.button("🚀 Run Comparison", type="primary"):
+        # Re-split data based on user slider settings
+        X_train_comp, X_test_comp, y_train_comp, y_test_comp = train_test_split(
+            X_scaled, y, test_size=test_size/100.0, random_state=random_state
+        )
+
+        # Define fresh models for the comparison
+        comp_models = {
+            "KNN": KNeighborsClassifier(n_neighbors=5),
+            "SVM": SVC(kernel='rbf', probability=True, random_state=random_state),
+            "ANN": MLPClassifier(hidden_layer_sizes=(100,), max_iter=500, random_state=random_state)
+        }
+
+        results = []
+        
+        # Train and evaluate models
+        with st.spinner("Training models and calculating metrics..."):
             for name, model in comp_models.items():
                 model.fit(X_train_comp, y_train_comp)
                 y_pred = model.predict(X_test_comp)
+                
                 results.append({
-                    "Model": name, "Accuracy": accuracy_score(y_test_comp, y_pred),
+                    "Model": name,
+                    "Accuracy": accuracy_score(y_test_comp, y_pred),
                     "Precision": precision_score(y_test_comp, y_pred),
-                    "Recall": recall_score(y_test_comp, y_pred), "F1 Score": f1_score(y_test_comp, y_pred)
+                    "Recall": recall_score(y_test_comp, y_pred),
+                    "F1 Score": f1_score(y_test_comp, y_pred)
                 })
-            results_df = pd.DataFrame(results).set_index("Model")
-            st.dataframe(results_df.style.format("{:.2%}").highlight_max(axis=0, color="#d4edda"), use_container_width=True)
-            
-            # Visualizations (Tabs from Assignment file)
-            t1, t2, t3 = st.tabs(["F1 Score", "Metric Comparison", "Confusion Matrices"])
-            with t1:
-                fig, ax = plt.subplots(figsize=(8, 4))
-                ax.bar(results_df.index, results_df['F1 Score'], color=['#3498db', '#2ecc71', '#e74c3c'])
-                st.pyplot(fig)
-            with t2:
-                fig_line, ax_line = plt.subplots(figsize=(8, 4))
-                for m in results_df.index:
-                    ax_line.plot(['Accuracy', 'Precision', 'Recall', 'F1 Score'], results_df.loc[m], marker='o', label=m)
-                ax_line.legend()
-                st.pyplot(fig_line)
-            with t3:
-                cm_cols = st.columns(3)
-                for i, (name, model) in enumerate(comp_models.items()):
-                    cm = confusion_matrix(y_test_comp, model.predict(X_test_comp))
-                    fig_cm, ax_cm = plt.subplots(figsize=(3, 3))
-                    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax_cm, cbar=False)
-                    with cm_cols[i]: st.pyplot(fig_cm)
 
-            # --- Merged Summary Analysis from Website File ---
-            st.markdown("---")
-            st.subheader("📝 Summary Analysis")
-            st.write("""
-            | Algorithm | Strengths | Weaknesses |
-            |-----------|-----------|------------|
-            | **KNN** | Simple, no training time [cite: 29] | Slow prediction, sensitive to noise [cite: 30] |
-            | **ANN** | Captures complex patterns [cite: 30] | Black-box nature, needs more data [cite: 31] |
-            | **SVM** | Effective in high dimensions [cite: 31] | Parameter tuning required [cite: 32] |
-            """)
+        # Create and display DataFrame
+        results_df = pd.DataFrame(results).set_index("Model")
+        
+        st.markdown("---")
+        st.subheader("📈 Performance Metrics")
+        
+        # Highlight the best scores in green
+        st.dataframe(
+            results_df.style.format("{:.2%}")
+            .highlight_max(axis=0, color="darkgreen"),
+            use_container_width=True
+        )
+
+        # --- F1 Score Bar Chart ---
+        st.markdown("---")
+        st.subheader("📊 F1 Score Comparison (Primary Metric)")
+        fig, ax = plt.subplots(figsize=(8, 4))
+        
+        bars = ax.bar(results_df.index, results_df['F1 Score'], color=['#3498db', '#2ecc71', '#e74c3c'])
+        
+        ax.set_ylabel('F1 Score')
+        ax.set_ylim(0, 1.0)
+        
+        # Add value labels on top of the bars
+        for bar in bars:
+            height = bar.get_height()
+            ax.annotate(f'{height:.3f}',
+                        xy=(bar.get_x() + bar.get_width() / 2, height),
+                        xytext=(0, 3), 
+                        textcoords="offset points",
+                        ha='center', va='bottom')
+        
+        st.pyplot(fig)
+
+        # --- NEW VISUALIZATION: Dot/Line Plot for All Metrics ---
+        st.markdown("---")
+        st.subheader("🎯 Comprehensive Metric Comparison (Dot Plot)")
+        st.write("This graph plots every metric simultaneously so you can spot which model is the most well-rounded.")
+        
+        fig_line, ax_line = plt.subplots(figsize=(10, 5))
+        
+        colors = {'KNN': '#3498db', 'SVM': '#2ecc71', 'ANN': '#e74c3c'}
+        metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+        
+        # Plot a line with prominent dots for each model
+        for model in results_df.index:
+            ax_line.plot(metrics, results_df.loc[model, metrics], 
+                         marker='o', markersize=10, linewidth=2.5, 
+                         label=model, color=colors[model])
             
-            best_model = results_df['F1 Score'].idxmax()
-            st.success(f"🏆 **Recommended Model: {best_model}** based on an F1 Score of {results_df.loc[best_model, 'F1 Score']:.2%}[cite: 34].")
+        ax_line.set_ylabel('Score')
+        ax_line.set_ylim(0, 1.1)  # Set limit slightly above 1 to fit the layout
+        ax_line.legend(loc='lower right')
+        ax_line.grid(True, linestyle='--', alpha=0.6)
+        
+        st.pyplot(fig_line)
+
+        # --- Confusion Matrices ---
+        st.markdown("---")
+        st.subheader("🧩 Confusion Matrices (Individual Algorithm Performance)")
+        st.write("This shows exactly where each model succeeded and where it made errors.")
+        
+        cm_cols = st.columns(3)
+        
+        for i, (name, model) in enumerate(comp_models.items()):
+            y_pred_cm = model.predict(X_test_comp)
+            cm = confusion_matrix(y_test_comp, y_pred_cm)
+            
+            fig_cm, ax_cm = plt.subplots(figsize=(4, 3))
+            
+            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                        xticklabels=['Negative', 'Positive'], 
+                        yticklabels=['Negative', 'Positive'], ax=ax_cm)
+            
+            ax_cm.set_ylabel('Actual Outcome')
+            ax_cm.set_xlabel('Predicted Outcome')
+            ax_cm.set_title(f'{name} Model')
+            
+            with cm_cols[i]:
+                st.pyplot(fig_cm)
+
+        # --- Summary Analysis ---
+        st.markdown("---")
+        st.subheader("📝 Summary Analysis")
+        st.write("""
+        | Algorithm | Strengths | Weaknesses |
+        |-----------|-----------|------------|
+        | **KNN** | Simple, no training time, interpretable | Slow prediction, sensitive to irrelevant features |
+        | **ANN** | Captures complex patterns, highly flexible | Requires more data, black-box nature |
+        | **SVM** | Effective in high dimensions, memory efficient | Parameter tuning required, slower training |
+        """)
+        
+        # --- Best Model Recommendation ---
+        best_f1_model = results_df['F1 Score'].idxmax()
+        best_accuracy_model = results_df['Accuracy'].idxmax()
+        
+        st.subheader("🏆 Recommended Model")
+        
+        if results_df.loc[best_f1_model, 'F1 Score'] == results_df.loc[best_accuracy_model, 'Accuracy']:
+            recommended = best_accuracy_model
+        else:
+            recommended = best_f1_model
+            
+        st.success(f"""
+        **{recommended}** is recommended for this diabetes prediction task based on the current settings:
+        - Accuracy: **{results_df.loc[recommended, 'Accuracy']:.2%}**
+        - Precision: **{results_df.loc[recommended, 'Precision']:.2%}**
+        - Recall: **{results_df.loc[recommended, 'Recall']:.2%}**
+        - F1 Score: **{results_df.loc[recommended, 'F1 Score']:.2%}**
+        """)
+    else:
+        st.info("👆 Adjust your settings and click 'Run Comparison' to generate metrics and charts.")
