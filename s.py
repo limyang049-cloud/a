@@ -720,7 +720,7 @@ def doctor_directory_page():
         "Available Days": ["Mon-Sat 9AM-5PM", "Mon-Wed-Fri 10AM-2PM", "Tue-Thu 11AM-3PM", 
                           "Mon-Fri 9AM-4PM", "Mon-Sat 10AM-6PM", "Mon-Fri 9AM-1PM", 
                           "Mon-Thu 10AM-4PM", "Mon-Sat 11AM-3PM"],
-        "Fee (₹)": ["400", "800", "750", "500", "600", "450", "650", "550"]
+        "Fee (RM)": ["1200", "800", "750", "500", "600", "450", "650", "550"]
     }
     
     df_doctors = pd.DataFrame(doctors_data)
@@ -729,7 +729,7 @@ def doctor_directory_page():
     st.markdown("""
     <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-top: 30px;">
         <h4 style="color: #0cb8b6;"><i class="fas fa-calendar-alt"></i> Book an Appointment</h4>
-        <p>Call our helpline: <strong>+1 600 123 1234</strong> or email: <strong>appointments@doctello.com</strong></p>
+        <p>Call our helpline: <strong>+60 11 5544 1234</strong> or email: <strong>appointments@doctello.com</strong></p>
         <p>Emergency services available 24/7. All major insurance plans accepted.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -817,9 +817,9 @@ def main():
         
         st.markdown("---")
         st.markdown("### Contact Info")
-        st.markdown("📞 +1 600 123 1234")
+        st.markdown("📞 +60 11 4455 1234")
         st.markdown("✉️ info@doctello.com")
-        st.markdown("📍 Dehradun, India")
+        st.markdown("📍 Maylaysia, Subang Jaya")
     
     # Page Routing
     page = st.session_state.page
