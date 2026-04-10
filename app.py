@@ -556,44 +556,55 @@ def system_checker_page():
             st.markdown("#### 📋 Performance Metrics Table")
             st.dataframe(results_df.style.format("{:.2%}").highlight_max(axis=0, color="#d4edda"), use_container_width=True)
             
-            # Comprehensive Metric Comparison - Dot Plot
-            st.markdown("#### 📈 Comprehensive Metric Comparison (Dot Plot)")
-            
-            fig_dot, ax_dot = plt.subplots(figsize=(12, 6))
-            
-            metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
-            colors = {'KNN': '#3498db', 'SVM': '#2ecc71', 'ANN': '#e74c3c'}
-            markers = {'KNN': 'o', 'SVM': 's', 'ANN': '^'}
-            
-            y_pos = np.arange(len(metrics))
-            
-            for i, model in enumerate(results_df.index):
-                values = [results_df.loc[model, 'Accuracy'], 
-                         results_df.loc[model, 'Precision'],
-                         results_df.loc[model, 'Recall'], 
-                         results_df.loc[model, 'F1 Score']]
-                
-                # Add small horizontal offset for each model
-                offset = (i - 1) * 0.2
-                ax_dot.scatter(values, y_pos + offset, s=150, c=colors[model], 
-                              marker=markers[model], label=model, alpha=0.8, zorder=3)
-                
-                # Add value labels
-                for j, val in enumerate(values):
-                    ax_dot.annotate(f'{val:.2f}', (val + 0.02, y_pos[j] + offset), 
-                                   fontsize=8, ha='left', va='center')
-            
-            ax_dot.set_yticks(y_pos)
-            ax_dot.set_yticklabels(metrics)
-            ax_dot.set_xlabel('Score')
-            ax_dot.set_title('Model Performance Comparison - Dot Plot', fontsize=14, fontweight='bold')
-            ax_dot.set_xlim(0, 1.05)
-            ax_dot.axvline(x=0.7, color='gray', linestyle='--', alpha=0.5, label='Good Threshold')
-            ax_dot.legend(loc='lower right')
-            ax_dot.grid(axis='x', alpha=0.3)
-            
-            st.pyplot(fig_dot)
-            plt.close()
+            # Improved Visualization Logic
+st.markdown("#### 📈 Enhanced Performance Overview")
+
+# Set consistent styling
+colors = ['#3498db', '#2ecc71', '#e74c3c'] # Blue (KNN), Green (SVM), Red (ANN)
+metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+
+# Create a figure with two subplots: Horizontal Bar and Radar
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7), gridspec_kw={'width_ratios': [1.5, 1]})
+
+# --- 1. Horizontal Grouped Bar Chart (Replaces Dot Plot) ---
+x = np.arange(len(metrics))
+width = 0.25
+
+for i, model in enumerate(results_df.index):
+    values = results_df.loc[model, metrics].values
+    rects = ax1.barh(x + (i*width), values, width, label=model, color=colors[i], alpha=0.85)
+    ax1.bar_label(rects, fmt='%.2f', padding=5, fontsize=9)
+
+ax1.set_title('Metric Comparison by Algorithm', fontsize=14, fontweight='bold', pad=20)
+ax1.set_yticks(x + width)
+ax1.set_yticklabels(metrics)
+ax1.set_xlim(0, 1.1)
+ax1.axvline(x=0.7, color='grey', linestyle='--', alpha=0.4, label='Threshold')
+ax1.legend(loc='lower right', frameon=True)
+ax1.grid(axis='x', linestyle=':', alpha=0.6)
+
+# --- 2. Radar Chart (For "Model Balance" Visualization) ---
+# Prepare angles for the radar
+angles = np.linspace(0, 2 * np.pi, len(metrics), endpoint=False).tolist()
+angles += angles[:1] # Close the loop
+
+ax2 = plt.subplot(1, 2, 2, polar=True)
+
+for i, model in enumerate(results_df.index):
+    values = results_df.loc[model, metrics].values.tolist()
+    values += values[:1] # Close the loop
+    ax2.plot(angles, values, color=colors[i], linewidth=2, label=model)
+    ax2.fill(angles, values, color=colors[i], alpha=0.1)
+
+ax2.set_theta_offset(np.pi / 2)
+ax2.set_theta_direction(-1)
+ax2.set_xticks(angles[:-1])
+ax2.set_xticklabels(metrics)
+ax2.set_title('Algorithm "Shape" & Balance', fontsize=14, fontweight='bold', pad=20)
+
+plt.tight_layout()
+st.pyplot(fig)
+plt.close()
             
             # Confusion Matrices for Individual Algorithms
             st.markdown("#### 🔍 Confusion Matrices (Individual Algorithm Performance)")
