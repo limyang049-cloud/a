@@ -11,13 +11,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-import re
-from datetime import datetime
 
 warnings.filterwarnings('ignore')
 
@@ -424,103 +422,6 @@ def quote_section():
     """, unsafe_allow_html=True)
 
 # ==========================================
-# CONTACT SECTION
-# ==========================================
-def contact_section():
-    st.markdown('<div class="section-padding">', unsafe_allow_html=True)
-    
-    st.markdown('<h2 style="text-align: center;">Contact us</h2>', unsafe_allow_html=True)
-    st.markdown('<hr class="botm-line" style="margin: 20px auto;">', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 2])
-    
-    with col1:
-        st.markdown("""
-        <h3>Contact Info</h3>
-        <p><i class="fas fa-map-marker-alt"></i> Dehradun, Uttarakhand, India, 248001</p>
-        <p><i class="fas fa-envelope"></i> info@doctello.com</p>
-        <p><i class="fas fa-phone"></i> +1 600 123 1234</p>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown('<h3>Having Any Query? Shoot us a message.</h3>', unsafe_allow_html=True)
-        
-        with st.form("contact_form"):
-            name = st.text_input("Your Name", placeholder="Your Name")
-            email = st.text_input("Your Email", placeholder="Your Email")
-            subject = st.text_input("Subject", placeholder="Subject")
-            message = st.text_area("Message", placeholder="Message", height=120)
-            
-            submitted = st.form_submit_button("Send Message", use_container_width=True)
-            
-            if submitted:
-                if len(name) >= 2 and email and len(message) >= 5:
-                    st.success("✅ Your message has been sent! Thank you!")
-                else:
-                    st.error("❌ Please fill all fields correctly.")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ==========================================
-# FOOTER SECTION
-# ==========================================
-def footer_section():
-    st.markdown("""
-    <div class="footer">
-        <h4>Connect With Me</h4>
-        <div style="margin: 20px 0;">
-            <a href="https://www.linkedin.com/company/ieeeditu" target="_blank" class="social-icon social-linkedin">
-                <i class="fab fa-linkedin"></i>
-            </a>
-            <a href="https://www.instagram.com/ieeeditu/?hl=en" target="_blank" class="social-icon social-instagram">
-                <i class="fab fa-instagram"></i>
-            </a>
-            <a href="https://github.com/ieeeditu" target="_blank" class="social-icon social-github">
-                <i class="fab fa-github-alt"></i>
-            </a>
-        </div>
-        <hr style="border-color: rgba(255,255,255,0.1); margin: 20px auto; width: 80%;">
-        <p>© All Copyright Reserved. Doctello</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ==========================================
-# FAQ PAGE
-# ==========================================
-def faq_page():
-    st.markdown("""
-    <div style="background: linear-gradient(rgba(13, 70, 83, 0.9), rgba(13, 70, 83, 0.9)),
-                url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
-                background-size: cover; padding: 80px 0;">
-        <div style="max-width: 900px; margin: 0 auto; background: rgba(255,255,255,0.95); border-radius: 10px; padding: 40px;">
-            <h1 style="text-align: center; color: #0cb8b6;">Frequently Asked Questions</h1>
-            <hr class="botm-line" style="margin: 20px auto;">
-            
-            <h3>Q1. What are the conditions treated by general physicians?</h3>
-            <p>Ans: General physicians treat conditions like headaches, flu, urinary infections, blood pressure, diabetes, common aches, etc.</p>
-            
-            <h3>Q2. Do general physicians offer home consultation?</h3>
-            <p>Ans: Yes, most general physicians offer home consultation in case of emergencies.</p>
-            
-            <h3>Q3. Will the consultation and diagnosis be covered in insurance?</h3>
-            <p>Ans: Most common conditions are not covered by insurance. Please check with your provider.</p>
-            
-            <h3>Q4. Do general physicians provide in-house medicines?</h3>
-            <p>Ans: Yes, some general physicians provide in-house medicines.</p>
-            
-            <h3>Q5. What are the consultation charges of general physicians in Dehradun?</h3>
-            <p>Ans: Consultation fees range from Rs. 250 to Rs. 500.</p>
-            
-            <h3>Q6. What are the side effects of medications?</h3>
-            <p>Ans: Common side effects include headaches, skin rashes, and mouth blisters. Always consult your doctor.</p>
-            
-            <h3>Q7. What diseases can be treated by a general physician?</h3>
-            <p>Ans: Pain, headaches, cough, influenza, urinary infections, blood pressure, diabetes, and more.</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ==========================================
 # SYSTEM CHECKER / PREDICTION PAGE
 # ==========================================
 def system_checker_page():
@@ -767,6 +668,29 @@ def health_tips_page():
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
+# FOOTER SECTION
+# ==========================================
+def footer_section():
+    st.markdown("""
+    <div class="footer">
+        <h4>Connect With Me</h4>
+        <div style="margin: 20px 0;">
+            <a href="https://www.linkedin.com/company/ieeeditu" target="_blank" class="social-icon social-linkedin">
+                <i class="fab fa-linkedin"></i>
+            </a>
+            <a href="https://www.instagram.com/ieeeditu/?hl=en" target="_blank" class="social-icon social-instagram">
+                <i class="fab fa-instagram"></i>
+            </a>
+            <a href="https://github.com/ieeeditu" target="_blank" class="social-icon social-github">
+                <i class="fab fa-github-alt"></i>
+            </a>
+        </div>
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 20px auto; width: 80%;">
+        <p>© All Copyright Reserved. Doctello</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ==========================================
 # MAIN APP
 # ==========================================
 def main():
@@ -782,8 +706,6 @@ def main():
             "🏠 Home": "home",
             "🩺 Services": "services",
             "📋 About": "about",
-            "❓ FAQ": "faq",
-            "📞 Contact": "contact",
             "🔬 System Checker": "checker",
             "👨‍⚕️ Find Doctor": "doctor",
             "💚 Health Tips": "tips"
@@ -809,7 +731,6 @@ def main():
         cta_section()
         about_section()
         quote_section()
-        contact_section()
         footer_section()
     
     elif page == "services":
@@ -822,15 +743,6 @@ def main():
         st.markdown('<div style="padding: 40px 0 20px;"><h1 style="text-align: center;">About Us</h1><hr class="botm-line" style="margin: 20px auto;"></div>', unsafe_allow_html=True)
         about_section()
         quote_section()
-        footer_section()
-    
-    elif page == "faq":
-        faq_page()
-        footer_section()
-    
-    elif page == "contact":
-        st.markdown('<div style="padding: 40px 0 20px;"><h1 style="text-align: center;">Contact Us</h1><hr class="botm-line" style="margin: 20px auto;"></div>', unsafe_allow_html=True)
-        contact_section()
         footer_section()
     
     elif page == "checker":
