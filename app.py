@@ -152,4 +152,68 @@ def system_checker_page():
             })
             cms[name] = confusion_matrix(y_test, y_pred)
 
-        results_df = pd
+        results_df = pd.DataFrame(results).set_index("Model")
+        
+        # --- ENHANCED VISUALIZATION ---
+        st.subheader("📈 Model Performance Analysis")
+        colors = ['#3498db', '#2ecc71', '#e74c3c']
+        
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7), gridspec_kw={'width_ratios': [1.5, 1]})
+
+        # 1. Horizontal Grouped Bar Chart
+        y_pos = np.arange(len(metrics_list))
+        width = 0.2
+        for i, model in enumerate(results_df.index):
+            vals = results_df.loc[model, metrics_list].values
+            rects = ax1.barh(y_pos + (i*width), vals, width, label=model, color=colors[i], alpha=0.8)
+            ax1.bar_label(rects, fmt='%.2f', padding=5)
+
+        ax1.set_yticks(y_pos + width)
+        ax1.set_yticklabels(metrics_list)
+        ax1.set_title("Metric Comparison by Algorithm", fontweight='bold')
+        ax1.axvline(x=0.7, color='grey', linestyle='--', alpha=0.3)
+        ax1.legend()
+
+        # 2. Radar Chart
+        angles = np.linspace(0, 2 * np.pi, len(metrics_list), endpoint=False).tolist()
+        angles += angles[:1]
+        ax2 = plt.subplot(1, 2, 2, polar=True)
+        for i, model in enumerate(results_df.index):
+            vals = results_df.loc[model, metrics_list].values.tolist()
+            vals += vals[:1]
+            ax2.plot(angles, vals, color=colors[i], linewidth=2, label=model)
+            ax2.fill(angles, vals, color=colors[i], alpha=0.1)
+        ax2.set_xticks(angles[:-1])
+        ax2.set_xticklabels(metrics_list)
+        ax2.set_title("Algorithm Balance (Radar)", fontweight='bold')
+
+        plt.tight_layout()
+        st.pyplot(fig)
+        
+        # Confusion Matrices
+        st.markdown("#### 🔍 Confusion Matrices")
+        cols = st.columns(3)
+        for i, (name, cm) in enumerate(cms.items()):
+            with cols[i]:
+                fig_cm, ax_cm = plt.subplots(figsize=(4,3))
+                sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False)
+                ax_cm.set_title(f"{name}")
+                st.pyplot(fig_cm)
+
+def main():
+    local_css()
+    with st.sidebar:
+        st.title("🏥 Doctello")
+        if st.button("🏠 Home"): st.session_state.page = "home"
+        if st.button("🔬 System Checker"): st.session_state.page = "checker"
+    
+    if st.session_state.page == "home":
+        hero_section()
+        services_section()
+        footer_section()
+    elif st.session_state.page == "checker":
+        system_checker_page()
+        footer_section()
+
+if __name__ == "__main__":
+    main()
