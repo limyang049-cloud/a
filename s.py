@@ -729,7 +729,7 @@ def doctor_directory_page():
     st.markdown("""
     <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-top: 30px;">
         <h4 style="color: #0cb8b6;"><i class="fas fa-calendar-alt"></i> Book an Appointment</h4>
-        <p>Call our helpline: <strong>+60 11 5544 1234</strong> or email: <strong>appointments@doctello.com</strong></p>
+        <p>Call our helpline: <strong>+60 11 4455 1234</strong> or email: <strong>appointments@doctello.com</strong></p>
         <p>Emergency services available 24/7. All major insurance plans accepted.</p>
     </div>
     """, unsafe_allow_html=True)
